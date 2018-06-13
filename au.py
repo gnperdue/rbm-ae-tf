@@ -3,10 +3,11 @@ from utilsnn import xavier_init
 
 
 class AutoEncoder(object):
-    def __init__(self, input_size, layer_sizes, layer_names, tied_weights=False, optimizer=tf.train.AdamOptimizer(),
-                 transfer_function=tf.nn.sigmoid):
-
-        self.layer_names  = layer_names
+    def __init__(
+            self, input_size, layer_sizes, layer_names, tied_weights=False,
+            optimizer=tf.train.AdamOptimizer(), transfer_function=tf.nn.sigmoid
+    ):
+        self.layer_names = layer_names
         self.tied_weights = tied_weights
 
         # Build the encoding layers
@@ -22,12 +23,15 @@ class AutoEncoder(object):
             input_dim = int(next_layer_input.get_shape()[1])
 
             # Initialize W using xavier initialization
-            W = tf.Variable(xavier_init(input_dim, dim, transfer_function), name=layer_names[i][0])
-
+            W = tf.Variable(
+                xavier_init(input_dim, dim, transfer_function),
+                name=layer_names[i][0]
+            )
             # Initialize b to zero
             b = tf.Variable(tf.zeros([dim]), name=layer_names[i][1])
 
-            # We are going to use tied-weights so store the W matrix for later reference.
+            # We are going to use tied-weights so store the W matrix
+            # for later reference.
             self.encoding_matrices.append(W)
             self.encoding_biases.append(b)
 
@@ -46,13 +50,22 @@ class AutoEncoder(object):
         self.decoding_matrices = []
         self.decoding_biases = []
 
-        for i, dim in enumerate(layer_sizes[1:] + [int(self.x.get_shape()[1])]):
+        for i, dim in enumerate(
+                layer_sizes[1:] + [int(self.x.get_shape()[1])]
+        ):
             W = None
-            # if we are using tied weights, so just lookup the encoding matrix for this step and transpose it
+            # if we are using tied weights, so just lookup the encoding
+            # matrix for this step and transpose it
             if tied_weights:
                 W = tf.identity(tf.transpose(self.encoding_matrices[i]))
             else:
-                W = tf.Variable(xavier_init(self.encoding_matrices[i].get_shape()[1].value,self.encoding_matrices[i].get_shape()[0].value, transfer_function))
+                W = tf.Variable(
+                    xavier_init(
+                        self.encoding_matrices[i].get_shape()[1].value,
+                        self.encoding_matrices[i].get_shape()[0].value,
+                        transfer_function
+                    )
+                )
             b = tf.Variable(tf.zeros([dim]))
             self.decoding_matrices.append(W)
             self.decoding_biases.append(b)
@@ -68,7 +81,9 @@ class AutoEncoder(object):
         self.reconstructed_x = next_layer_input
 
         # compute cost
-        self.cost = tf.sqrt(tf.reduce_mean(tf.square(self.x - self.reconstructed_x)))
+        self.cost = tf.sqrt(
+            tf.reduce_mean(tf.square(self.x - self.reconstructed_x))
+        )
         self.optimizer = optimizer.minimize(self.cost)
 
         # initalize variables
@@ -88,12 +103,16 @@ class AutoEncoder(object):
         saver.restore(self.sess, path)
 
         if not self.tied_weights:
-            self.sess.run(self.decoding_matrices[layer].assign(tf.transpose(self.encoding_matrices[layer])))
+            self.sess.run(
+                self.decoding_matrices[layer].assign(
+                    tf.transpose(self.encoding_matrices[layer])
+                )
+            )
 
     def print_weights(self):
         print('Matrices')
         for i in range(len(self.encoding_matrices)):
-            print('Matrice',i)
+            print('Matrice', i)
             print(self.encoding_matrices[i].eval(self.sess).shape)
             print(self.encoding_matrices[i].eval(self.sess))
             if not self.tied_weights:
@@ -101,7 +120,7 @@ class AutoEncoder(object):
                 print(self.decoding_matrices[i].eval(self.sess))
 
     def load_weights(self, path):
-        dict_w = self.get_dict_layer_names() 
+        dict_w = self.get_dict_layer_names()
         saver = tf.train.Saver(dict_w)
         saver.restore(self.sess, path)
 
@@ -121,5 +140,7 @@ class AutoEncoder(object):
         return dict_w
 
     def partial_fit(self, X):
-        cost, opt = self.sess.run((self.cost, self.optimizer), feed_dict={self.x: X})
+        cost, opt = self.sess.run(
+            (self.cost, self.optimizer), feed_dict={self.x: X}
+        )
         return cost
